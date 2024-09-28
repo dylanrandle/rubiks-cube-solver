@@ -1,0 +1,10 @@
+name: rubiks-cube-solver
+channels:
+  - defaults
+dependencies:
+  - pip
+  - pyserial
+  - python
+  - pillow
+  - numpy
+  - opencv
