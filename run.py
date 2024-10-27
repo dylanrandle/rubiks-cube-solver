@@ -48,7 +48,7 @@ def main():
     arduino.wait_for_ready()
 
     if args.debug:
-        commands = get_random_self_resolving_commands()
+        commands = get_random_resolving_commands()
     elif args.shuffle:
         commands = get_random_commands()
     else:
@@ -68,7 +68,6 @@ def get_solve_commands():
     face_to_color = {"U": "G", "R": "O", "F": "W", "D": "B", "L": "R", "B": "Y"}
     color_to_face = {v: k for k, v in face_to_color.items()}
 
-    # TODO: get cube state from cameras
     #             |************|
     #             |*U1**U2**U3*|
     #             |************|
@@ -96,6 +95,7 @@ def get_solve_commands():
     # D1, D2, D3, D4, D5, D6, D7, D8, D9,
     # L1, L2, L3, L4, L5, L6, L7, L8, L9,
     # B1, B2, B3, B4, B5, B6, B7, B8, B9.
+    # TODO: get cube state from cameras
     cube_colors = (
         f"YGBY{face_to_color["U"]}WRGB"  # up
         + f"RORR{face_to_color["R"]}OBRY"  # right
@@ -118,11 +118,20 @@ def get_solve_commands():
 def get_random_commands(num_moves=20, random_seed=None):
     if random_seed:
         np.random.seed(random_seed)
-    faces = np.random.choice(["L", "F", "R", "D", "U", "B"], size=num_moves)
-    counts = np.random.choice(["", "2"], size=num_moves)
-    inverted = np.random.choice(["", "'"], size=num_moves)
 
-    commands = [f"{f}{c}{i}" for f, c, i in zip(faces, counts, inverted)]
+    faces = {"L", "F", "R", "D", "U", "B"}
+    counts = ["", "2"]
+    inversions = ["", "'"]
+
+    commands, last_face = [], {}
+    for _ in range(num_moves):
+        # we make sure not to repeat the same face in consecutive moves
+        face = np.random.choice(list(faces.difference(last_face)))
+        count = np.random.choice(counts)
+        inverted = np.random.choice(inversions)
+        commands.append(f"{face}{count}{inverted}")
+        last_face = {face}
+
     return commands
 
 
@@ -132,7 +141,7 @@ def invert_command(command: str):
     return command + "'"
 
 
-def get_random_self_resolving_commands(**kwargs):
+def get_random_resolving_commands(**kwargs):
     commands = get_random_commands(**kwargs)
     commands = commands + list(reversed([invert_command(c) for c in commands]))
     return commands
