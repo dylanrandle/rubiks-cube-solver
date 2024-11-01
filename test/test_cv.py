@@ -13,7 +13,7 @@ def main():
             print("Error reading image, quitting")
             break
 
-        cv2.imshow("frame", frame)
+        cv2.imshow("Frame", frame)
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
