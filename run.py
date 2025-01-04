@@ -5,6 +5,7 @@ import numpy as np
 from kociemba import solve
 
 from src.arduino import ArduinoSerial
+from src.utils import timer
 
 
 def parse_args():
@@ -36,6 +37,21 @@ def parse_args():
         default=False,
         help="Whether to run shuffling",
     )
+    parser.add_argument(
+        "-n",
+        "--num-moves",
+        required=False,
+        type=int,
+        default=10,
+        help="How many moves to use for shuffling",
+    )
+    parser.add_argument(
+        "--seed",
+        required=False,
+        type=int,
+        default=None,
+        help="Random seed",
+    )
     args = parser.parse_args()
     print(f"Parsed args: {vars(args)}")
     return args
@@ -48,20 +64,30 @@ def main():
     arduino.wait_for_ready()
 
     if args.debug:
-        commands = get_random_resolving_commands()
+        commands = get_random_resolving_commands(
+            num_moves=args.num_moves, random_seed=args.seed
+        )
     elif args.shuffle:
-        commands = get_random_commands()
+        commands = get_random_commands(num_moves=args.num_moves, random_seed=args.seed)
     else:
         commands = get_solve_commands()
 
     for c in commands:
-        print(f"Writing command: {c}")
-        arduino.write_line(c)
-        time.sleep(0.1)
+        send_command(arduino, c)
 
-    while True:
-        print(arduino.read_line())
-        time.sleep(0.1)
+
+@timer
+def send_command(serial: ArduinoSerial, command: str):
+    serial.write_line(command)
+
+    print(f"Sent: {command}")
+
+    while not serial.in_size() > 0:
+        time.sleep(0.01)
+
+    line = serial.read_line()
+
+    print(f"Received: {line}")
 
 
 def get_solve_commands():
@@ -97,12 +123,12 @@ def get_solve_commands():
     # B1, B2, B3, B4, B5, B6, B7, B8, B9.
     # TODO: get cube state from cameras
     cube_colors = (
-        f"YGBY{face_to_color["U"]}WRGB"  # up
-        + f"RORR{face_to_color["R"]}OBRY"  # right
-        + f"GYWY{face_to_color["F"]}GWRO"  # front
-        + f"GBWB{face_to_color["D"]}WGBO"  # down
-        + f"GOWO{face_to_color["L"]}ROYO"  # left
-        + f"YWRG{face_to_color["B"]}BBWY"  # back
+        f"GGBG{face_to_color['U']}BGGG"  # up
+        + f"OYOO{face_to_color['R']}OOOO"  # right
+        + f"WWWY{face_to_color['F']}WYWY"  # front
+        + f"RBGB{face_to_color['D']}BRGB"  # down
+        + f"RRRR{face_to_color['L']}RBRB"  # left
+        + f"WYYY{face_to_color['B']}WYOW"  # back
     )
     print(f"Got cube colors: {cube_colors}")
 

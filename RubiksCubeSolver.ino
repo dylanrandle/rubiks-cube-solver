@@ -66,15 +66,7 @@ void runMove(char face, int numTurns, bool inverted) {
   stepper.runToNewPosition(currentPosition + deltaPosition);
 }
 
-struct Move getNextMove() {
-  String command = Serial.readStringUntil('\n');
-
-  command.trim();
-  command.toUpperCase();
-
-  Serial.print("Got command: ");
-  Serial.println(command);
-
+struct Move getMove(String command) {
   char face = command.charAt(0);
   bool inverted = command.endsWith("'");
   int numTurns;
@@ -90,22 +82,16 @@ struct Move getNextMove() {
   return move;
 }
 
-void printMove(Move move) {
-  Serial.print("Face: ");
-  Serial.print(move.face);
-  Serial.print(", numTurns: ");
-  Serial.print(move.numTurns);
-  Serial.print(", inverted: ");
-  Serial.print(move.inverted);
-  Serial.println();
-}
-
 void loop() {
   if (Serial.available() > 0) {
-    Serial.print("Num bytes: ");
-    Serial.println(Serial.available());
-    Move move = getNextMove();
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+    command.toUpperCase();
+
+    Move move = getMove(command);
     runMove(move.face, move.numTurns, move.inverted);
-    delay(10);
+    
+    Serial.print("DONE: ");
+    Serial.println(command);
   }
 }

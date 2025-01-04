@@ -15,7 +15,7 @@ def main():
 
     time.sleep(1)
 
-    while arduino.available() > 0:
+    while arduino.in_size() > 0:
         print(arduino.read_line())
 
 

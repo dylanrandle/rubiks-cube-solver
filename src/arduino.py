@@ -7,6 +7,11 @@ class ArduinoSerial:
     def __init__(self, port, baudrate=9600):
         self.serial = serial.Serial(port=f"/dev/tty.usbmodem{port}", baudrate=baudrate)
 
+    @property
+    def buffer_size(self):
+        # default serial buffer size on Arduino Uno
+        return 64
+
     def read_line(self):
         return self.serial.readline().decode().strip()
 
@@ -20,5 +25,8 @@ class ArduinoSerial:
 
         print("Arduino ready")
 
-    def available(self) -> int:
+    def in_size(self) -> int:
         return self.serial.in_waiting
+
+    def out_size(self) -> int:
+        return self.serial.out_waiting
