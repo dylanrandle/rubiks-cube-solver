@@ -72,6 +72,7 @@ def main():
     else:
         commands = get_solve_commands()
 
+    print(f"Sending commands: {commands}")
     for c in commands:
         send_command(arduino, c)
 
@@ -123,12 +124,12 @@ def get_solve_commands():
     # B1, B2, B3, B4, B5, B6, B7, B8, B9.
     # TODO: get cube state from cameras
     cube_colors = (
-        f"GGBG{face_to_color['U']}BGGG"  # up
-        + f"OYOO{face_to_color['R']}OOOO"  # right
-        + f"WWWY{face_to_color['F']}WYWY"  # front
-        + f"RBGB{face_to_color['D']}BRGB"  # down
-        + f"RRRR{face_to_color['L']}RBRB"  # left
-        + f"WYYY{face_to_color['B']}WYOW"  # back
+        f"OOGY{face_to_color['U']}OWRG"  # up
+        + f"RGWR{face_to_color['R']}OGRW"  # right
+        + f"OYYW{face_to_color['F']}BBOO"  # front
+        + f"YBYG{face_to_color['D']}GWWR"  # down
+        + f"YBBG{face_to_color['L']}BGWR"  # left
+        + f"OYBW{face_to_color['B']}YBRR"  # back
     )
     print(f"Got cube colors: {cube_colors}")
 
@@ -137,11 +138,12 @@ def get_solve_commands():
 
     solution = solve(cube_state)
     print(f"Solution: {solution}")
+
     commands = solution.split(" ")
     return commands
 
 
-def get_random_commands(num_moves=20, random_seed=None):
+def get_random_commands(num_moves: int, random_seed: int = None):
     if random_seed:
         np.random.seed(random_seed)
 
