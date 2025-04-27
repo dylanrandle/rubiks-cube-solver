@@ -30,6 +30,14 @@ def parse_args():
         help="Whether to run random debug moves",
     )
     parser.add_argument(
+        "-i",
+        "--input",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Whether to wait for input moves",
+    )
+    parser.add_argument(
         "-s",
         "--shuffle",
         required=False,
@@ -69,12 +77,22 @@ def main():
         )
     elif args.shuffle:
         commands = get_random_commands(num_moves=args.num_moves, random_seed=args.seed)
+    elif args.input:
+        return listen_for_input_commands(arduino)
     else:
         commands = get_solve_commands()
 
     print(f"Sending commands: {commands}")
     for c in commands:
         send_command(arduino, c)
+
+
+def listen_for_input_commands(arduino: ArduinoSerial):
+    while True:
+        command = input("Enter a command (q to exit): ").strip()
+        if command.lower() == "q":
+            exit()
+        send_command(arduino, command)
 
 
 @timer
@@ -124,12 +142,12 @@ def get_solve_commands():
     # B1, B2, B3, B4, B5, B6, B7, B8, B9.
     # TODO: get cube state from cameras
     cube_colors = (
-        f"OOGY{face_to_color['U']}OWRG"  # up
-        + f"RGWR{face_to_color['R']}OGRW"  # right
-        + f"OYYW{face_to_color['F']}BBOO"  # front
-        + f"YBYG{face_to_color['D']}GWWR"  # down
-        + f"YBBG{face_to_color['L']}BGWR"  # left
-        + f"OYBW{face_to_color['B']}YBRR"  # back
+        f"GGGG{face_to_color['U']}GBBB"  # up
+        + f"OOOO{face_to_color['R']}OORO"  # right
+        + f"YYYW{face_to_color['F']}WWWW"  # front
+        + f"BBBB{face_to_color['D']}BGGG"  # down
+        + f"RRRR{face_to_color['L']}RROR"  # left
+        + f"YYYY{face_to_color['B']}YWWW"  # back
     )
     print(f"Got cube colors: {cube_colors}")
 

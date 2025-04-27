@@ -7,7 +7,7 @@ def timer(func):
         result = func(*args, **kwargs)
         end = time.perf_counter()
 
-        runtime_ms = 100 * (end - start)
+        runtime_ms = 1000 * (end - start)
         print(f"Function {func.__name__} executed in {runtime_ms:.4f}ms")
 
         return result
