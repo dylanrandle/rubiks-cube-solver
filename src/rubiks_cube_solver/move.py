@@ -1,11 +1,11 @@
-import time
 import logging
+import time
 from typing import Iterable
 
 import numpy as np
 
-from src.arduino import ArduinoSerial
-from src.utils import timer
+from rubiks_cube_solver.arduino import ArduinoSerial
+from rubiks_cube_solver.utils import timer
 
 
 class MoveManager:

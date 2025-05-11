@@ -7,4 +7,5 @@ Code for Rubik's cube solving robot.
 ```
 conda env create -f conda.yml
 pip install --use-pep517 kociemba
+pip install -e .
 ```

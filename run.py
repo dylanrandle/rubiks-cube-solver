@@ -3,8 +3,8 @@ import logging
 
 from kociemba import solve
 
-from src.move import MoveManager
-from src.arduino import ArduinoSerial
+from rubiks_cube_solver.move import MoveManager
+from rubiks_cube_solver.arduino import ArduinoSerial
 
 
 def parse_args():
@@ -67,10 +67,10 @@ def parse_args():
 def main():
     args = parse_args()
 
-    arduino = ArduinoSerial(args.port, baudrate=args.baudrate)
-    arduino.wait_for_ready()
+    serial = ArduinoSerial(args.port, baudrate=args.baudrate)
+    serial.wait_for_ready()
 
-    move_manager = MoveManager(arduino)
+    move_manager = MoveManager(serial)
 
     if args.debug:
         return move_manager.run_random_resolving_moves(
