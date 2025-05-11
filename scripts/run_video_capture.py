@@ -2,10 +2,18 @@ import cv2
 
 
 def main():
-    capture = cv2.VideoCapture(0)
+    capture = cv2.VideoCapture(1)
     if not capture.isOpened():
         print("Cannot open camera")
         exit()
+
+    params = [
+        cv2.CAP_PROP_AUTO_EXPOSURE,
+        cv2.CAP_PROP_EXPOSURE,
+    ]
+
+    for p in params:
+        print(p, capture.get(p))
 
     while True:
         ret, frame = capture.read()
