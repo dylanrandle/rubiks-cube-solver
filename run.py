@@ -1,11 +1,10 @@
 import argparse
-import time
+import logging
 
-import numpy as np
 from kociemba import solve
 
+from src.move import MoveManager
 from src.arduino import ArduinoSerial
-from src.utils import timer
 
 
 def parse_args():
@@ -61,7 +60,7 @@ def parse_args():
         help="Random seed",
     )
     args = parser.parse_args()
-    print(f"Parsed args: {vars(args)}")
+    logging.info(f"Parsed args: {vars(args)}")
     return args
 
 
@@ -71,42 +70,21 @@ def main():
     arduino = ArduinoSerial(args.port, baudrate=args.baudrate)
     arduino.wait_for_ready()
 
+    move_manager = MoveManager(arduino)
+
     if args.debug:
-        commands = get_random_resolving_commands(
+        return move_manager.run_random_resolving_moves(
             num_moves=args.num_moves, random_seed=args.seed
         )
     elif args.shuffle:
-        commands = get_random_commands(num_moves=args.num_moves, random_seed=args.seed)
+        return move_manager.run_random_moves(
+            num_moves=args.num_moves, random_seed=args.seed
+        )
     elif args.input:
-        return listen_for_input_commands(arduino)
+        return move_manager.listen_for_input_moves()
     else:
-        commands = get_solve_commands()
-
-    print(f"Sending commands: {commands}")
-    for c in commands:
-        send_command(arduino, c)
-
-
-def listen_for_input_commands(arduino: ArduinoSerial):
-    while True:
-        command = input("Enter a command (q to exit): ").strip()
-        if command.lower() == "q":
-            exit()
-        send_command(arduino, command)
-
-
-@timer
-def send_command(serial: ArduinoSerial, command: str):
-    serial.write_line(command)
-
-    print(f"Sent: {command}")
-
-    while not serial.in_size() > 0:
-        time.sleep(0.01)
-
-    line = serial.read_line()
-
-    print(f"Received: {line}")
+        moves = get_solve_commands()
+        return move_manager.run_moves(moves)
 
 
 def get_solve_commands():
@@ -149,47 +127,15 @@ def get_solve_commands():
         + f"RRRR{face_to_color['L']}RROR"  # left
         + f"YYYY{face_to_color['B']}YWWW"  # back
     )
-    print(f"Got cube colors: {cube_colors}")
+    logging.info(f"Got cube colors: {cube_colors}")
 
     cube_state = "".join([color_to_face[color] for color in cube_colors])
-    print(f"Got cube state: {cube_state}")
+    logging.info(f"Got cube state: {cube_state}")
 
     solution = solve(cube_state)
-    print(f"Solution: {solution}")
+    logging.info(f"Solution: {solution}")
 
     commands = solution.split(" ")
-    return commands
-
-
-def get_random_commands(num_moves: int, random_seed: int = None):
-    if random_seed:
-        np.random.seed(random_seed)
-
-    faces = {"L", "F", "R", "D", "U", "B"}
-    counts = ["", "2"]
-    inversions = ["", "'"]
-
-    commands, last_face = [], {}
-    for _ in range(num_moves):
-        # we make sure not to repeat the same face in consecutive moves
-        face = np.random.choice(list(faces.difference(last_face)))
-        count = np.random.choice(counts)
-        inverted = np.random.choice(inversions)
-        commands.append(f"{face}{count}{inverted}")
-        last_face = {face}
-
-    return commands
-
-
-def invert_command(command: str):
-    if command.endswith("'"):
-        return command[:-1]
-    return command + "'"
-
-
-def get_random_resolving_commands(**kwargs):
-    commands = get_random_commands(**kwargs)
-    commands = commands + list(reversed([invert_command(c) for c in commands]))
     return commands
 
 

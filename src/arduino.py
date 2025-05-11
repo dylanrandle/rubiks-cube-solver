@@ -1,4 +1,5 @@
 import time
+import logging
 
 import serial
 
@@ -14,11 +15,11 @@ class ArduinoSerial:
         return self.serial.write(f"{message}\n".encode("ascii"))
 
     def wait_for_ready(self):
-        while self.read_line() != "ARDUINO:READY":
-            print("Waiting for Arduino to be ready...")
+        while self.read_line() != "STATUS:READY":
+            logging.info("Waiting for Arduino to be ready...")
             time.sleep(1)
 
-        print("Arduino ready")
+        logging.info("Arduino ready")
 
     def in_size(self) -> int:
         return self.serial.in_waiting

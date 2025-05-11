@@ -19,6 +19,7 @@ AccelStepper steppers[NUM_STEPPERS] = {
 
 struct Move {
   char face;
+  
   int numTurns;
   bool inverted;
 };
@@ -26,12 +27,15 @@ struct Move {
 void setup() {
   Serial.begin(9600);
 
+  pinMode(A0, OUTPUT);
+  pinMode(A1, OUTPUT);
+
   for (int i = 0; i < NUM_STEPPERS; i++) {
     steppers[i].setMaxSpeed(MOTOR_MAX_SPEED);
     steppers[i].setAcceleration(MOTOR_ACCELERATION);
   }
 
-  Serial.println("ARDUINO:READY");
+  Serial.println("STATUS:READY");
 }
 
 int getStepperIndex(char face) {
@@ -82,16 +86,41 @@ struct Move getMove(String command) {
   return move;
 }
 
+void handleCommand(String command) {
+  if (command.startsWith("MOVE:")) {
+    handleMoveCommand(command.substring(5));
+  } else if (command.startsWith("LIGHT:")) {
+    handleLightCommand(command.substring((6)));
+  } 
+}
+
+void handleMoveCommand(String command) {
+  Move move = getMove(command);
+  runMove(move.face, move.numTurns, move.inverted);
+}
+
+void handleLightCommand(String command) {
+  if (command.endsWith("U0")) { // upper off
+    digitalWrite(A0, LOW);
+  } else if (command.endsWith("U1")) { // upper on
+    digitalWrite(A0, HIGH);
+  } else if (command.endsWith("L0")) { // lower off
+    digitalWrite(A1, LOW);
+  } else if (command.endsWith("L1")) { // lower on
+    digitalWrite(A1, HIGH);
+  }
+}
+
+
 void loop() {
   if (Serial.available() > 0) {
     String command = Serial.readStringUntil('\n');
     command.trim();
     command.toUpperCase();
 
-    Move move = getMove(command);
-    runMove(move.face, move.numTurns, move.inverted);
-    
-    Serial.print("DONE: ");
+    handleCommand(command);
+
+    Serial.print("DONE:");
     Serial.println(command);
   }
 }

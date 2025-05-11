@@ -1,3 +1,4 @@
+import logging
 import time
 
 
@@ -8,7 +9,7 @@ def timer(func):
         end = time.perf_counter()
 
         runtime_ms = 1000 * (end - start)
-        print(f"Function {func.__name__} executed in {runtime_ms:.4f}ms")
+        logging.info(f"Function {func.__name__} executed in {runtime_ms:.4f}ms")
 
         return result
 
