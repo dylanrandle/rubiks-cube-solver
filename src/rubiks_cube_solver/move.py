@@ -4,7 +4,7 @@ from typing import Iterable
 
 import numpy as np
 
-from rubiks_cube_solver.arduino import ArduinoSerial
+from rubiks_cube_solver.serial import ArduinoSerial
 from rubiks_cube_solver.utils import timer
 
 

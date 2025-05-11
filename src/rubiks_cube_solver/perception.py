@@ -5,7 +5,7 @@ from enum import Enum
 import cv2
 import numpy as np
 
-from rubiks_cube_solver.arduino import ArduinoSerial
+from rubiks_cube_solver.serial import ArduinoSerial
 
 
 class Light(Enum):
@@ -147,6 +147,8 @@ def find_hsv_ranges():
 
 def trigger_lights():
     serial = ArduinoSerial(31201)
+    serial.wait_for_ready()
+
     perception = PerceptionSystem(serial, 0, 1)
 
     while True:

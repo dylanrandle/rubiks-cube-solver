@@ -4,7 +4,7 @@ import logging
 from kociemba import solve
 
 from rubiks_cube_solver.move import MoveManager
-from rubiks_cube_solver.arduino import ArduinoSerial
+from rubiks_cube_solver.serial import ArduinoSerial
 
 
 def parse_args():
