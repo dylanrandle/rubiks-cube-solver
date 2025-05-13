@@ -1,13 +1,15 @@
 import logging
 import time
+from dataclasses import dataclass
 from enum import Enum
 
 import cv2
+import numpy as np
 
 from rubiks_cube_solver.serial import ArduinoSerial
 
 
-class Light(Enum):
+class Position(Enum):
     UPPER = "U"
     LOWER = "L"
 
@@ -17,26 +19,31 @@ class Status(Enum):
     ON = "1"
 
 
+@dataclass
+class Image:
+    rgb: np.ndarray
+    hsv: np.ndarray
+
+
 class PerceptionSystem:
-    def __init__(self, serial: ArduinoSerial, lower_idx: int, upper_idx: int):
+    def __init__(self, serial: ArduinoSerial):
         self.serial = serial
         self.light_prefix = "LIGHT:"
 
         self.hsv_ranges = {}
-        self.lower_cap = cv2.VideoCapture(lower_idx)
-        self.upper_cap = cv2.VideoCapture(upper_idx)
+        self.position_to_idx = {
+            Position.LOWER: 1,
+            Position.UPPER: 2,
+        }
 
-        if not self.lower_cap.isOpened() or not self.upper_cap.isOpened():
-            raise IOError("Unable to open webcams")
+    def turn_light_on(self, position: Position):
+        self.send_light_command(position, Status.ON)
 
-    def turn_light_on(self, light: Light):
-        self.send_light_command(light, Status.ON)
+    def turn_light_off(self, position: Position):
+        self.send_light_command(position, Status.OFF)
 
-    def turn_light_off(self, light: Light):
-        self.send_light_command(light, Status.OFF)
-
-    def send_light_command(self, light: Light, status: Status):
-        command = self.light_prefix + light.value + status.value
+    def send_light_command(self, position: Position, status: Status):
+        command = self.light_prefix + position.value + status.value
         self.serial.write_line(command)
 
         logging.info(f"Sent: {command}")
@@ -48,29 +55,25 @@ class PerceptionSystem:
 
         logging.info(f"Received: {line}")
 
-    def perceive_cube(self):
-        pass
-
-    def capture_images(self):
-        pass
-
-    def __del__(self):
-        self.lower_cap.release()
-        self.upper_cap.release()
+    def capture_image(self, position: Position):
+        self.turn_light_on(position)
+        rgb = get_rgb(self.position_to_idx[position])
+        self.turn_light_off(position)
+        return Image(rgb=rgb, hsv=rgb_to_hsv(rgb))
 
 
-def capture_image(camera_idx: int, delay_seconds: float = 0):
+def get_rgb(camera_idx: int, delay_seconds: float = 0):
     cap = cv2.VideoCapture(camera_idx)
 
     if not cap.isOpened():
-        raise IOError("Unable to open webcam")
+        raise IOError(f"Unable to open webcam {camera_idx}")
 
     time.sleep(delay_seconds)
 
     ret, frame = cap.read()
 
     if not ret:
-        raise IOError("Unable to read frame")
+        raise IOError(f"Unable to read frame {camera_idx}")
 
     cap.release()
 
