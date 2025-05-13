@@ -1,5 +1,3 @@
-import logging
-import time
 from typing import Iterable
 
 import numpy as np
@@ -15,16 +13,7 @@ class MoveManager:
 
     @timer
     def run_move(self, move: str):
-        self.serial.write_line(self.prefix + move)
-
-        logging.info(f"Sent: {move}")
-
-        while not self.serial.in_size() > 0:
-            time.sleep(0.01)
-
-        line = self.serial.read_line()
-
-        logging.info(f"Received: {line.replace(self.prefix, '')}")
+        return self.serial.write_line_and_wait_for_response(self.prefix + move)
 
     def run_moves(self, moves: Iterable[str]):
         for move in moves:

@@ -1,4 +1,3 @@
-import logging
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -32,8 +31,8 @@ class PerceptionSystem:
 
         self.hsv_ranges = {}
         self.position_to_idx = {
-            Position.LOWER: 1,
-            Position.UPPER: 2,
+            Position.LOWER: 0,
+            Position.UPPER: 1,
         }
 
     def turn_light_on(self, position: Position):
@@ -44,16 +43,7 @@ class PerceptionSystem:
 
     def send_light_command(self, position: Position, status: Status):
         command = self.light_prefix + position.value + status.value
-        self.serial.write_line(command)
-
-        logging.info(f"Sent: {command}")
-
-        while not self.serial.in_size() > 0:
-            time.sleep(0.01)
-
-        line = self.serial.read_line()
-
-        logging.info(f"Received: {line}")
+        return self.serial.write_line_and_wait_for_response(command)
 
     def capture_image(self, position: Position):
         self.turn_light_on(position)

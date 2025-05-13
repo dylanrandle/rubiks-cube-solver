@@ -10,9 +10,6 @@ from rubiks_cube_solver.perception import (
 )
 from rubiks_cube_solver.serial import ArduinoSerial
 
-LOWER_ID = 0
-UPPER_ID = 1
-
 green_min = [40, 126, 123]
 green_max = [72, 198, 240]
 
