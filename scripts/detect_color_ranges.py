@@ -10,12 +10,6 @@ from rubiks_cube_solver.perception import (
 )
 from rubiks_cube_solver.serial import ArduinoSerial
 
-green_min = [40, 126, 123]
-green_max = [72, 198, 240]
-
-yellow_min = [78, 77, 180]
-yellow_max = [89, 171, 242]
-
 
 def find_hsv_ranges():
     serial = ArduinoSerial(31201)
