@@ -64,8 +64,8 @@ class PerceptionSystem:
         self.calibration = load_calibration()
 
         self.position_to_camera_idx: Dict[Position, int] = {
-            Position.LOWER: 0,
-            Position.UPPER: 1,
+            Position.LOWER: 1,
+            Position.UPPER: 2,
         }
 
         self.light_prefix = "LIGHT:"
@@ -151,7 +151,8 @@ class PerceptionSystem:
         return cube_colors
 
     def get_cube_state(self):
-        # need to add center face itself
+        cube_colors = self.get_cube_colors()
+        cube_state: Iterable[Face] = []
         # need to return order expected by solver:
         # U1, U2, U3, U4, U5, U6, U7, U8, U9,
         # R1, R2, R3, R4, R5, R6, R7, R8, R9,
@@ -159,14 +160,12 @@ class PerceptionSystem:
         # D1, D2, D3, D4, D5, D6, D7, D8, D9,
         # L1, L2, L3, L4, L5, L6, L7, L8, L9,
         # B1, B2, B3, B4, B5, B6, B7, B8, B9.
-        cube_colors = self.get_cube_colors()
-        cube_state: Iterable[Face] = []
         for face in [Face.UP, Face.RIGHT, Face.FRONT, Face.DOWN, Face.LEFT, Face.BACK]:
-            for i in range(9):
-                if i == 4:
+            for i, color in enumerate(cube_colors[face]):
+                cube_state.append(self.color_to_face[color])
+                if i == 3:
+                    # add center facelet
                     cube_state.append(face)
-                else:
-                    cube_state.append(self.color_to_face[cube_colors[face][i]])
 
         return "".join([state.value for state in cube_state])
 

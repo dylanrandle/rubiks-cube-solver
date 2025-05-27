@@ -1,6 +1,6 @@
 import argparse
 import logging
-from typing import Dict, List
+from typing import Callable, Dict, List
 import json
 from pathlib import Path
 
@@ -89,12 +89,7 @@ def calibrate_colors(images: Dict[Position, Image]):
 
         wait(destroy=True)
 
-        logging.info("Commit? (y/n)")
-        response = input().strip().lower()
-        if response == "y":
-            save_color(color, hsv_min, hsv_max)
-        else:
-            logging.warning("Not saving results")
+        maybe_commit(lambda: save_color(color, hsv_min, hsv_max))
 
 
 def calibrate_coordinates(images: Dict[Position, Image]):
@@ -139,7 +134,11 @@ def calibrate_coordinates(images: Dict[Position, Image]):
 
         wait(destroy=False)
 
-        logging.info(f"Coordinates: {coordinates}")
+        if len(coordinates) != 8:
+            logging.warning(
+                f"Received invalid number of coordinates ({len(coordinates)}), skipping"
+            )
+            continue
 
         annotated = img.rgb.copy()
 
@@ -168,10 +167,7 @@ def calibrate_coordinates(images: Dict[Position, Image]):
 
         wait(destroy=True)
 
-        logging.info("Commit? (y/n)")
-        response = input().strip().lower()
-        if response == "y":
-            save_coordinates(face, coordinates)
+        maybe_commit(lambda: save_coordinates(face, coordinates))
 
 
 def save_color(color: Color, hsv_min: np.ndarray, hsv_max: np.ndarray):
@@ -224,69 +220,14 @@ def show_image(window_id: str, rgb: np.ndarray, callback=None):
         cv2.setMouseCallback(window_id, callback)
 
 
+def maybe_commit(callable: Callable):
+    logging.info("Commit? (y/n)")
+    response = input().strip().lower()
+    if response == "y":
+        callable()
+    else:
+        logging.info("Not saving results")
+
+
 if __name__ == "__main__":
     main()
-
-
-# FACET_COORDINATES: Dict[Face, Iterable[Coordinate]] = {
-#     Face.BACK: [
-#         Coordinate(1040, 145),
-#         Coordinate(1200, 270),
-#         Coordinate(1379, 469),
-#         Coordinate(1031, 307),
-#         Coordinate(1366, 562),
-#         Coordinate(1010, 498),
-#         Coordinate(1224, 642),
-#         Coordinate(1395, 754),
-#     ],
-#     Face.LEFT: [
-#         Coordinate(533, 349),
-#         Coordinate(686, 427),
-#         Coordinate(869, 584),
-#         Coordinate(564, 550),
-#         Coordinate(903, 792),
-#         Coordinate(567, 642),
-#         Coordinate(730, 833),
-#         Coordinate(889, 969),
-#     ],
-#     Face.RIGHT: [
-#         Coordinate(524, 462),
-#         Coordinate(699, 264),
-#         Coordinate(860, 135),
-#         Coordinate(525, 557),
-#         Coordinate(857, 309),
-#         Coordinate(490, 755),
-#         Coordinate(644, 671),
-#         Coordinate(828, 550),
-#     ],
-#     Face.FRONT: [
-#         Coordinate(1089, 586),
-#         Coordinate(1274, 440),
-#         Coordinate(1450, 327),
-#         Coordinate(1089, 792),
-#         Coordinate(1418, 538),
-#         Coordinate(1065, 972),
-#         Coordinate(1237, 850),
-#         Coordinate(1425, 646),
-#     ],
-#     Face.UP: [
-#         Coordinate(620, 190),
-#         Coordinate(803, 111),
-#         Coordinate(1092, 46),
-#         Coordinate(797, 273),
-#         Coordinate(1175, 116),
-#         Coordinate(989, 403),
-#         Coordinate(1177, 284),
-#         Coordinate(1359, 189),
-#     ],
-#     Face.DOWN: [
-#         Coordinate(1046, 1058),
-#         Coordinate(766, 993),
-#         Coordinate(569, 912),
-#         Coordinate(1134, 991),
-#         Coordinate(750, 825),
-#         Coordinate(1322, 901),
-#         Coordinate(1149, 822),
-#         Coordinate(935, 721),
-#     ],
-# }
