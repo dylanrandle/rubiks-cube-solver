@@ -59,8 +59,14 @@ class Image:
 
 
 class PerceptionSystem:
-    def __init__(self, serial: ArduinoSerial):
+    def __init__(self, serial: ArduinoSerial, debug: bool = False):
         self.serial = serial
+
+        self.debug = debug
+        self.debug_path = Path("debug")
+        if self.debug and not self.debug_path.exists():
+            self.debug_path.mkdir()
+
         self.calibration = load_calibration()
 
         self.position_to_camera_idx: Dict[Position, int] = {
@@ -116,6 +122,10 @@ class PerceptionSystem:
             color = self.pixel_hsv_to_color(pixel_hsv)
             colors.append(color)
             logging.debug(f"{face=}, {coordinate=}, {pixel_hsv=}, {color=}")
+
+        if self.debug:
+            self.log_face_colors(face, coordinates, colors, image)
+
         return colors
 
     def pixel_hsv_to_color(self, pixel_hsv: np.ndarray):
@@ -140,6 +150,31 @@ class PerceptionSystem:
                 closest_color = color
                 closest_distance = distance
         return closest_color
+
+    def log_face_colors(
+        self,
+        face: Face,
+        coordinates: Iterable[Coordinate],
+        colors: Iterable[Color],
+        img: Image,
+    ):
+        annotated = img.rgb.copy()
+        for coordinate, color in zip(coordinates, colors):
+            start = (coordinate.x - 5, coordinate.y - 5)
+            end = (coordinate.x + 5, coordinate.y + 5)
+            draw_color = (0, 0, 0)
+            annotated = cv2.rectangle(annotated, start, end, draw_color, -1)
+            annotated = cv2.putText(
+                annotated,
+                color.value,
+                (coordinate.x + 5, coordinate.y - 5),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                draw_color,
+                5,
+            )
+
+        cv2.imwrite(self.debug_path / f"debug_face_{face.value}.jpg", annotated)
 
     def get_cube_colors(self):
         cube_colors: Dict[Face, Iterable[Color]] = {}

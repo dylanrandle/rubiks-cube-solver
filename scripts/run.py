@@ -26,7 +26,15 @@ def parse_args():
         required=False,
         action="store_true",
         default=False,
-        help="Whether to run random debug moves",
+        help="Whether to add debug logging",
+    )
+    parser.add_argument(
+        "-r",
+        "--resolve",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Whether to run auto-resolving moves",
     )
     parser.add_argument(
         "-i",
@@ -71,9 +79,9 @@ def main():
     serial.wait_for_ready()
 
     move_manager = MoveManager(serial)
-    perception = PerceptionSystem(serial)
+    perception = PerceptionSystem(serial, debug=args.debug)
 
-    if args.debug:
+    if args.resolve:
         return move_manager.run_random_resolving_moves(
             num_moves=args.num_moves, random_seed=args.seed
         )
