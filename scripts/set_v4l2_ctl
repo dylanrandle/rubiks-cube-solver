@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -x
+
+device_id=$1
+
+echo "Setting configs for device "$device_id
+
+v4l2-ctl \
+	-d $device_id \
+	-c brightness=112 \
+	-c contrast=112 \
+	-c saturation=112 \
+	-c hue=128 \
+	-c white_balance_automatic=1 \
+	-c gamma=120 \
+	-c gain=0 \
+	-c power_line_frequency=0 \
+	-c sharpness=14 \
+	-c backlight_compensation=1 \
+	-c auto_exposure=1 \
+	-c exposure_time_absolute=10 \
+	-c exposure_dynamic_framerate=1
