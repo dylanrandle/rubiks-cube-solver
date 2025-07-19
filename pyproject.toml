@@ -1,3 +1,16 @@
 [project]
-name = "rubiks_cube_solver"
-version = "1.0.0"
+name = "rubiks-cube-solver"
+version = "0.1.0"
+description = "Software for a Rubik's cube solving robot!"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "kociemba>=1.2.1",
+    "numpy>=2.3.1",
+    "opencv-python>=4.11.0.86",
+    "pyserial>=3.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
