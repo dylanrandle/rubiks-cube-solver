@@ -24,11 +24,11 @@ class MoveManager:
                 exit()
             self.run_move(command)
 
-    def run_random_moves(self, num_moves: int, random_seed: int = 0):
+    def run_random_moves(self, num_moves: int, random_seed: int = None):
         moves = get_random_moves(num_moves=num_moves, random_seed=random_seed)
         self.run_moves(moves)
 
-    def run_random_resolving_moves(self, num_moves: int, random_seed: int = 0):
+    def run_random_resolving_moves(self, num_moves: int, random_seed: int = None):
         moves = get_random_resolving_moves(num_moves=num_moves, random_seed=random_seed)
         self.run_moves(moves)
 
@@ -41,14 +41,14 @@ def get_random_moves(num_moves: int, random_seed: int = None):
     counts = ["", "2"]
     inversions = ["", "'"]
 
-    commands, last_face = [], {}
+    commands, last_face = [], ""
     for _ in range(num_moves):
         # we make sure not to repeat the same face in consecutive moves
-        face = np.random.choice(list(faces.difference(last_face)))
+        face = np.random.choice(list(sorted(faces.difference(last_face))))
         count = np.random.choice(counts)
         inverted = np.random.choice(inversions)
         commands.append(f"{face}{count}{inverted}")
-        last_face = {face}
+        last_face = face
 
     return commands
 

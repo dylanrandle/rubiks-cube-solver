@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 
 from rubiks_cube_solver.serial import ArduinoSerial
+from rubiks_cube_solver.utils import timer
 
 
 class Position(Enum):
@@ -59,7 +60,12 @@ class Image:
 
 
 class PerceptionSystem:
-    def __init__(self, serial: ArduinoSerial, debug: bool = False):
+    def __init__(
+        self,
+        serial: ArduinoSerial,
+        debug: bool = False,
+        camera_delay_seconds: float = 0.5,
+    ):
         self.serial = serial
 
         self.debug = debug
@@ -69,10 +75,18 @@ class PerceptionSystem:
 
         self.calibration = load_calibration()
 
+        self.camera_delay_seconds = camera_delay_seconds
         self.position_to_camera_idx: Dict[Position, int] = {
             Position.LOWER: 1,
-            Position.UPPER: 2,
+            Position.UPPER: 0,
         }
+
+        self.position_to_camera_capture: Dict[Position, cv2.VideoCapure] = {}
+        for pos, idx in self.position_to_camera_idx.items():
+            cap = cv2.VideoCapture(idx)
+            if not cap.isOpened():
+                raise IOError(f"Unable to open webcam {pos} @ {idx}")
+            self.position_to_camera_capture[pos] = cap
 
         self.light_prefix = "LIGHT:"
         self.position_to_faces: Dict[Position, Iterable[Face]] = {
@@ -99,10 +113,14 @@ class PerceptionSystem:
         command = self.light_prefix + position.value + status.value
         return self.serial.write_line_and_wait_for_response(command)
 
+    @timer
     def capture_image(self, position: Position):
         self.turn_light_on(position)
         try:
-            rgb = get_rgb(self.position_to_camera_idx[position])
+            rgb = get_rgb(
+                self.position_to_camera_capture[position],
+                delay_seconds=self.camera_delay_seconds,
+            )
         except Exception as e:
             raise e
         finally:
@@ -204,21 +222,18 @@ class PerceptionSystem:
 
         return "".join([state.value for state in cube_state])
 
+    def __del__(self):
+        for cap in self.position_to_camera_capture.values():
+            cap.release()
 
-def get_rgb(camera_idx: int, delay_seconds: float = 0):
-    cap = cv2.VideoCapture(camera_idx)
 
-    if not cap.isOpened():
-        raise IOError(f"Unable to open webcam {camera_idx}")
-
+def get_rgb(cap: cv2.VideoCapture, delay_seconds: float = 0):
     time.sleep(delay_seconds)
 
     ret, frame = cap.read()
 
     if not ret:
-        raise IOError(f"Unable to read frame {camera_idx}")
-
-    cap.release()
+        raise IOError("Unable to read frame")
 
     return frame
 
