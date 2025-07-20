@@ -12,10 +12,8 @@ from rubiks_cube_solver.perception import (
     Coordinate,
     Face,
     Image,
-    PerceptionSystem,
     Position,
 )
-from rubiks_cube_solver.serial import ArduinoSerial
 
 
 CALIBRATION_PATH = Path(__file__).parent.parent / "data" / "calibration.json"
@@ -23,7 +21,9 @@ CALIBRATION_PATH = Path(__file__).parent.parent / "data" / "calibration.json"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--port", required=True, type=str, help="Port to arduino")
+    parser.add_argument(
+        "-i", "--input", required=True, type=str, help="Path to input images"
+    )
     parser.add_argument(
         "-m",
         "--mode",
@@ -33,14 +33,16 @@ def main():
     )
     args = parser.parse_args()
 
-    serial = ArduinoSerial(args.port)
-    serial.wait_for_ready()
-
-    perception = PerceptionSystem(serial=serial)
+    input_dir = Path(args.input)
+    if not input_dir.exists():
+        raise RuntimeError("Invalid input directory")
 
     images: Dict[Position, Image] = {}
     for pos in Position:
-        img = perception.capture_image(pos)
+        img = Image(
+            rgb=cv2.imread(input_dir / f"{pos}_rgb.jpg"),
+            hsv=cv2.imread(input_dir / f"{pos}_hsv.jpg"),
+        )
         images[pos] = img
 
     if args.mode == "colors":
