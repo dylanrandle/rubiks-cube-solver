@@ -8,7 +8,7 @@ from rubiks_cube_solver.utils import timer
 
 class ArduinoSerial:
     def __init__(self, port, baudrate=9600):
-        self.serial = serial.Serial(port=f"/dev/tty.usbmodem{port}", baudrate=baudrate)
+        self.serial = serial.Serial(port=port, baudrate=baudrate)
 
     @timer
     def write_line_and_wait_for_response(self, message: str):

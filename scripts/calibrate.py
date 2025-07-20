@@ -23,7 +23,7 @@ CALIBRATION_PATH = Path(__file__).parent.parent / "data" / "calibration.json"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--port", required=True, type=int, help="Port to arduino")
+    parser.add_argument("-p", "--port", required=True, type=str, help="Port to arduino")
     parser.add_argument(
         "-m",
         "--mode",
