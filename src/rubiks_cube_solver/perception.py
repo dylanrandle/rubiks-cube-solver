@@ -77,8 +77,8 @@ class PerceptionSystem:
 
         self.camera_delay_seconds = camera_delay_seconds
         self.position_to_camera_idx: Dict[Position, int] = {
-            Position.LOWER: 2,
-            Position.UPPER: 0,
+            Position.LOWER: 0,
+            Position.UPPER: 2,
         }
 
         self.position_to_camera_capture: Dict[Position, cv2.VideoCapure] = {}
