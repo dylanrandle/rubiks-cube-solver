@@ -50,7 +50,15 @@ def parse_args():
         required=False,
         action="store_true",
         default=False,
-        help="Whether to run shuffling",
+        help="Whether to run shuffling moves",
+    )
+    parser.add_argument(
+        "-w",
+        "--warmup",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Whether to run warmup moves",
     )
     parser.add_argument(
         "-n",
@@ -91,6 +99,8 @@ def main():
         )
     elif args.input:
         return move_manager.listen_for_input_moves()
+    elif args.warmup:
+        return move_manager.run_warmup_moves()
     else:
         cube_state = perception.get_cube_state()
         moves = solve(cube_state)

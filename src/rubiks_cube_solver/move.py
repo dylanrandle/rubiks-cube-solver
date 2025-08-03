@@ -32,6 +32,11 @@ class MoveManager:
         moves = get_random_resolving_moves(num_moves=num_moves, random_seed=random_seed)
         self.run_moves(moves)
 
+    def run_warmup_moves(self):
+        moves = ["F", "R", "B", "L", "U", "D"]
+        moves += list(reversed([invert_move(move) for move in moves]))
+        self.run_moves(moves)
+
 
 def get_random_moves(num_moves: int, random_seed: int = None):
     if random_seed:
@@ -53,7 +58,7 @@ def get_random_moves(num_moves: int, random_seed: int = None):
     return commands
 
 
-def invert_moves(move: str):
+def invert_move(move: str):
     if move.endswith("'"):
         return move[:-1]
     return move + "'"
@@ -61,5 +66,5 @@ def invert_moves(move: str):
 
 def get_random_resolving_moves(num_moves: int, random_seed: int = None):
     commands = get_random_moves(num_moves=num_moves, random_seed=random_seed)
-    commands = commands + list(reversed([invert_moves(c) for c in commands]))
+    commands = commands + list(reversed([invert_move(c) for c in commands]))
     return commands
