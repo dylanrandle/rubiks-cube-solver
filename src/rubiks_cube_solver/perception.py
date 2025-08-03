@@ -65,6 +65,7 @@ class PerceptionSystem:
         serial: ArduinoSerial,
         debug: bool = False,
         camera_delay_seconds: float = 0.5,
+        color_neighborhood: int = 2,
     ):
         self.serial = serial
 
@@ -101,7 +102,7 @@ class PerceptionSystem:
             Color.RED: Face.LEFT,
             Color.YELLOW: Face.BACK,
         }
-        self.color_neighborhood = 5
+        self.color_neighborhood = color_neighborhood
 
     def turn_light_on(self, position: Position):
         self.send_light_command(position, Status.ON)
@@ -178,8 +179,14 @@ class PerceptionSystem:
     ):
         annotated = img.rgb.copy()
         for coordinate, color in zip(coordinates, colors):
-            start = (coordinate.x - 5, coordinate.y - 5)
-            end = (coordinate.x + 5, coordinate.y + 5)
+            start = (
+                coordinate.x - self.color_neighborhood,
+                coordinate.y - self.color_neighborhood,
+            )
+            end = (
+                coordinate.x + self.color_neighborhood,
+                coordinate.y + self.color_neighborhood,
+            )
             draw_color = (0, 0, 0)
             annotated = cv2.rectangle(annotated, start, end, draw_color, -1)
             annotated = cv2.putText(
