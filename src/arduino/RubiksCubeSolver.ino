@@ -19,7 +19,6 @@ AccelStepper steppers[NUM_STEPPERS] = {
 
 struct Move {
   char face;
-  
   int numTurns;
   bool inverted;
 };
@@ -55,16 +54,16 @@ int getStepperIndex(char face) {
   }
 }
 
-void runMove(char face, int numTurns, bool inverted) {
-  int stepperIdx = getStepperIndex(face);
+void runMove(Move move) {
+  int stepperIdx = getStepperIndex(move.face);
   AccelStepper stepper = steppers[stepperIdx];
   long currentPosition = stepper.currentPosition();
   long deltaPosition;
 
-  if (inverted) {
-    deltaPosition = MOTOR_STEPS_PER_TURN * (-numTurns);
+  if (move.inverted) {
+    deltaPosition = MOTOR_STEPS_PER_TURN * (-move.numTurns);
   } else {
-    deltaPosition = MOTOR_STEPS_PER_TURN * numTurns;
+    deltaPosition = MOTOR_STEPS_PER_TURN * move.numTurns;
   }
 
   stepper.runToNewPosition(currentPosition + deltaPosition);
@@ -91,12 +90,14 @@ void handleCommand(String command) {
     handleMoveCommand(command.substring(5));
   } else if (command.startsWith("LIGHT:")) {
     handleLightCommand(command.substring((6)));
-  } 
+  } else if (command.startsWith("JOG:")) {
+    handleJogCommand(command.substring((4)));
+  }
 }
 
 void handleMoveCommand(String command) {
   Move move = getMove(command);
-  runMove(move.face, move.numTurns, move.inverted);
+  runMove(move);
 }
 
 void handleLightCommand(String command) {
@@ -109,6 +110,25 @@ void handleLightCommand(String command) {
   } else if (command.endsWith("L1")) { // lower on
     digitalWrite(A1, HIGH);
   }
+}
+
+void handleJogCommand(String command) {
+  char face = command.charAt(0);
+  bool inverted = command.endsWith("'");
+  
+  int stepperIdx = getStepperIndex(face);
+  AccelStepper stepper = steppers[stepperIdx];
+
+  long currentPosition = stepper.currentPosition();
+  long deltaPosition;
+
+  if (inverted) {
+    deltaPosition = -1;
+  } else {
+    deltaPosition = 1;
+  }
+
+  stepper.runToNewPosition(currentPosition + deltaPosition);
 }
 
 
