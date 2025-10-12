@@ -1,4 +1,5 @@
 from typing import Iterable
+
 from kociemba import solve as _solve
 
 

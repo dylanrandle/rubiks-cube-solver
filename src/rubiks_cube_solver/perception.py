@@ -1,122 +1,59 @@
 import logging
-import time
-from dataclasses import dataclass
-from enum import Enum
-from typing import Dict, Iterable
-import json
 from pathlib import Path
+from typing import Iterable
 
 import cv2
 import numpy as np
 
-from rubiks_cube_solver.serial import ArduinoSerial
+from rubiks_cube_solver.arduino import Arduino
+from rubiks_cube_solver.calibration import load_calibration
+from rubiks_cube_solver.constants import (
+    COLOR_TO_FACE,
+    POSITION_TO_CAMERA_IDX,
+    POSITION_TO_FACES,
+    ROTATED_FACET_IDX_TO_COORDINATE_IDX,
+)
+from rubiks_cube_solver.cv import get_rgb, rgb_to_hsv
+from rubiks_cube_solver.types import (
+    Color,
+    Coordinate,
+    Face,
+    Image,
+    Position,
+)
 from rubiks_cube_solver.utils import timer
 
 
-class Position(Enum):
-    UPPER = "U"
-    LOWER = "L"
-
-
-class Status(Enum):
-    OFF = "0"
-    ON = "1"
-
-
-class Color(Enum):
-    RED = "R"
-    GREEN = "G"
-    ORANGE = "O"
-    YELLOW = "Y"
-    WHITE = "W"
-    BLUE = "B"
-
-
-class Face(Enum):
-    UP = "U"
-    FRONT = "F"
-    LEFT = "L"
-    RIGHT = "R"
-    DOWN = "D"
-    BACK = "B"
-
-
-@dataclass
-class Coordinate:
-    x: int
-    y: int
-
-
-@dataclass
-class Range:
-    min: np.ndarray
-    max: np.ndarray
-
-
-@dataclass
-class Image:
-    rgb: np.ndarray
-    hsv: np.ndarray
-
-
-class PerceptionSystem:
+class Perception:
     def __init__(
         self,
-        serial: ArduinoSerial,
+        arduino: Arduino,
         debug: bool = False,
+        debug_path: str = "debug",
         camera_delay_seconds: float = 0.5,
         color_neighborhood: int = 2,
     ):
-        self.serial = serial
-
+        self.arduino = arduino
         self.debug = debug
-        self.debug_path = Path("debug")
+        self.debug_path = Path(debug_path)
+        self.camera_delay_seconds = camera_delay_seconds
+        self.color_neighborhood = color_neighborhood
+
         if self.debug and not self.debug_path.exists():
-            self.debug_path.mkdir()
+            self.debug_path.mkdir(parents=True, exist_ok=True)
 
         self.calibration = load_calibration()
 
-        self.camera_delay_seconds = camera_delay_seconds
-        self.position_to_camera_idx: Dict[Position, int] = {
-            Position.LOWER: 0,
-            Position.UPPER: 2,
-        }
-
-        self.position_to_camera_capture: Dict[Position, cv2.VideoCapure] = {}
-        for pos, idx in self.position_to_camera_idx.items():
+        self.position_to_camera_capture: dict[Position, cv2.VideoCapure] = {}
+        for pos, idx in POSITION_TO_CAMERA_IDX.items():
             cap = cv2.VideoCapture(idx)
             if not cap.isOpened():
-                raise IOError(f"Unable to open webcam {pos} @ {idx}")
+                raise OSError(f"Unable to open webcam {pos} @ {idx}")
             self.position_to_camera_capture[pos] = cap
-
-        self.light_prefix = "LIGHT:"
-        self.position_to_faces: Dict[Position, Iterable[Face]] = {
-            Position.UPPER: [Face.UP, Face.LEFT, Face.FRONT],
-            Position.LOWER: [Face.RIGHT, Face.BACK, Face.DOWN],
-        }
-        self.color_to_face = {
-            Color.GREEN: Face.UP,
-            Color.ORANGE: Face.RIGHT,
-            Color.WHITE: Face.FRONT,
-            Color.BLUE: Face.DOWN,
-            Color.RED: Face.LEFT,
-            Color.YELLOW: Face.BACK,
-        }
-        self.color_neighborhood = color_neighborhood
-
-    def turn_light_on(self, position: Position):
-        self.send_light_command(position, Status.ON)
-
-    def turn_light_off(self, position: Position):
-        self.send_light_command(position, Status.OFF)
-
-    def send_light_command(self, position: Position, status: Status):
-        command = self.light_prefix + position.value + status.value
-        return self.serial.write_line_and_wait_for_response(command)
 
     @timer
     def capture_image(self, position: Position):
-        self.turn_light_on(position)
+        self.arduino.turn_light_on(position)
         try:
             rgb = get_rgb(
                 self.position_to_camera_capture[position],
@@ -125,7 +62,7 @@ class PerceptionSystem:
         except Exception as e:
             raise e
         finally:
-            self.turn_light_off(position)
+            self.arduino.turn_light_off(position)
         return Image(rgb=rgb, hsv=rgb_to_hsv(rgb))
 
     def get_face_colors(self, face: Face, image: Image):
@@ -152,8 +89,8 @@ class PerceptionSystem:
             if np.all((range.min <= pixel_hsv) & (pixel_hsv <= range.max)):
                 return color
 
-        logging.warning(
-            f"Unable to find exact color match: {pixel_hsv=}, falling back to nearest"
+        logging.debug(
+            f"Unable to find exact color match: {pixel_hsv=}, falling back to nearest",
         )
 
         closest_color = None
@@ -161,9 +98,9 @@ class PerceptionSystem:
         for color, range in self.calibration.hsv_ranges.items():
             distance = np.min(
                 [
-                    np.sum(np.abs(pixel_hsv - range.min)),
-                    np.sum(np.abs(pixel_hsv - range.max)),
-                ]
+                    np.sum((pixel_hsv - range.min) ** 2),
+                    np.sum((pixel_hsv - range.max) ** 2),
+                ],
             )
             if distance < closest_distance:
                 closest_color = color
@@ -178,7 +115,7 @@ class PerceptionSystem:
         img: Image,
     ):
         annotated = img.rgb.copy()
-        for coordinate, color in zip(coordinates, colors):
+        for coordinate, color in zip(coordinates, colors, strict=False):
             start = (
                 coordinate.x - self.color_neighborhood,
                 coordinate.y - self.color_neighborhood,
@@ -202,11 +139,23 @@ class PerceptionSystem:
         cv2.imwrite(self.debug_path / f"debug_face_{face.value}.jpg", annotated)
 
     def get_cube_colors(self):
-        cube_colors: Dict[Face, Iterable[Color]] = {}
+        cube_colors: dict[Face, Iterable[Color]] = {}
         for position in [Position.LOWER, Position.UPPER]:
             image = self.capture_image(position)
-            for face in self.position_to_faces[position]:
-                cube_colors[face] = self.get_face_colors(face, image)
+            for face in POSITION_TO_FACES[position]:
+                colors = self.get_face_colors(face, image)
+
+                self.arduino.run_move(f"{face.value}2")
+                image_rotated = self.capture_image(position)
+                self.arduino.run_move(f"{face.value}2'")
+
+                colors_rotated = self.get_face_colors(face, image_rotated)
+                for facet_idx, coordinate_idx in ROTATED_FACET_IDX_TO_COORDINATE_IDX[
+                    face
+                ].items():
+                    colors[facet_idx] = colors_rotated[coordinate_idx]
+
+                cube_colors[face] = colors
 
         return cube_colors
 
@@ -222,7 +171,7 @@ class PerceptionSystem:
         # B1, B2, B3, B4, B5, B6, B7, B8, B9.
         for face in [Face.UP, Face.RIGHT, Face.FRONT, Face.DOWN, Face.LEFT, Face.BACK]:
             for i, color in enumerate(cube_colors[face]):
-                cube_state.append(self.color_to_face[color])
+                cube_state.append(COLOR_TO_FACE[color])
                 if i == 3:
                     # add center facelet
                     cube_state.append(face)
@@ -232,49 +181,3 @@ class PerceptionSystem:
     def __del__(self):
         for cap in self.position_to_camera_capture.values():
             cap.release()
-
-
-def get_rgb(cap: cv2.VideoCapture, delay_seconds: float = 0):
-    time.sleep(delay_seconds)
-
-    ret, frame = cap.read()
-
-    if not ret:
-        raise IOError("Unable to read frame")
-
-    return frame
-
-
-def rgb_to_hsv(image):
-    return cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-
-
-@dataclass
-class Calibration:
-    hsv_ranges: Dict[Color, Range]
-    facet_coordinates: Dict[Face, Iterable[Coordinate]]
-
-
-CALIBRATION_PATH = Path(__file__).parent.parent.parent / "data" / "calibration.json"
-
-
-def load_calibration() -> Calibration:
-    with open(CALIBRATION_PATH, "r") as f:
-        data: Dict[str, Dict] = json.load(f)
-
-    hsv_ranges: Dict[Color, Range] = {}
-
-    for color_id, color_range in data["colors"].items():
-        hsv_ranges[Color(color_id)] = Range(
-            min=np.array(color_range["min"]), max=np.array(color_range["max"])
-        )
-
-    facet_coordinates: Dict[Face, Iterable[Coordinate]] = {}
-
-    for face_id, face_coordinates in data["coordinates"].items():
-        facet_coordinates[Face(face_id)] = [
-            Coordinate(coordinate["x"], coordinate["y"])
-            for coordinate in face_coordinates
-        ]
-
-    return Calibration(hsv_ranges=hsv_ranges, facet_coordinates=facet_coordinates)
