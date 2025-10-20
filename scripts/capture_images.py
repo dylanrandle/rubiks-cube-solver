@@ -7,7 +7,7 @@ from rubiks_cube_solver.arduino import Arduino
 from rubiks_cube_solver.perception import (
     Perception,
 )
-from rubiks_cube_solver.types import Image, Position
+from rubiks_cube_solver.types import Position
 
 
 def main():
@@ -31,10 +31,8 @@ def main():
     if not output_dir.exists():
         output_dir.mkdir()
 
-    images: dict[Position, Image] = {}
     for pos in Position:
         img = perception.capture_image(pos)
-        images[pos] = img
         cv2.imwrite(output_dir / f"{pos}_rgb.jpg", img.rgb)
         cv2.imwrite(output_dir / f"{pos}_hsv.jpg", img.hsv)
 

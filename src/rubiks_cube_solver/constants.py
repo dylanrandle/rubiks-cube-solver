@@ -8,8 +8,8 @@ COLORS_PATH = ROOT_PATH / "data" / "colors.json"
 FACES_PATH = ROOT_PATH / "data" / "faces.json"
 
 POSITION_TO_CAMERA_IDX: dict[Position, int] = {
-    Position.LOWER: 0,
-    Position.UPPER: 2,
+    Position.LOWER: 2,
+    Position.UPPER: 0,
 }
 
 POSITION_TO_FACES: dict[Position, Iterable[Face]] = {
