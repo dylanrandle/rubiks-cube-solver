@@ -11,6 +11,12 @@ dependencies = [
     "pyserial>=3.5",
 ]
 
+[project.scripts]
+main = "rubiks_cube_solver.scripts.main:main"
+calibrate-color = "rubiks_cube_solver.scripts.calibrate_color:main"
+calibrate-face = "rubiks_cube_solver.scripts.calibrate_face:main"
+capture-images = "rubiks_cube_solver.scripts.capture_images:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
