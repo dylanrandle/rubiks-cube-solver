@@ -17,4 +17,4 @@ def load_calibration() -> Calibration:
             for coordinate in face_coordinates
         ]
 
-    return Calibration(hsv_ranges=None, facet_coordinates=facet_coordinates)
+    return Calibration(facet_coordinates=facet_coordinates)
