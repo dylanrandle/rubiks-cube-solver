@@ -1,10 +1,23 @@
 import argparse
 import logging
+from dataclasses import dataclass
+from typing import Optional
 
 from rubiks_cube_solver.arduino import Arduino
 from rubiks_cube_solver.move import get_random_moves, get_random_resolving_moves
 from rubiks_cube_solver.perception import Perception
 from rubiks_cube_solver.solver import solve
+
+
+@dataclass
+class Args:
+    port: str
+    debug: bool
+    shuffle: bool
+    shuffle_and_resolve: bool
+    listen_for_input: bool
+    num_moves: int
+    random_seed: Optional[int] = None
 
 
 def parse_args():
@@ -15,6 +28,13 @@ def parse_args():
         required=True,
         type=str,
         help="Serial port for Arduino",
+    )
+    parser.add_argument(
+        "--debug",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Whether to add debug logging",
     )
     parser.add_argument(
         "--shuffle",
@@ -45,21 +65,15 @@ def parse_args():
         help="How many moves to use for shuffling",
     )
     parser.add_argument(
-        "--seed",
+        "--random-seed",
         required=False,
         type=int,
         default=None,
         help="Random seed",
     )
-    parser.add_argument(
-        "--debug",
-        required=False,
-        action="store_true",
-        default=False,
-        help="Whether to add debug logging",
-    )
     args = parser.parse_args()
-    logging.info(f"Parsed args: {vars(args)}")
+    args = Args(**vars(args))
+    logging.info(f"Parsed args: {args}")
     return args
 
 
@@ -89,10 +103,10 @@ def main():
             arduino.run_move(command)
 
     cube_state = perception.get_cube_state()
-    logging.debug("Got cube state: {}")
+    logging.debug(f"Got cube state: {cube_state}")
 
     response = input("Solve? (y/n): ")
-    if response.strip.lower() != "y":
+    if response.strip().lower() != "y":
         logging.info("Quitting")
         return
 
