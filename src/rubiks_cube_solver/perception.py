@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from typing import Iterable
 
 import cv2
@@ -8,7 +7,9 @@ import numpy as np
 from rubiks_cube_solver.arduino import Arduino
 from rubiks_cube_solver.calibration import load_calibration
 from rubiks_cube_solver.constants import (
+    COLOR_NEIGHBORHOOD,
     COLOR_TO_FACE,
+    DEBUG_PATH,
     POSITION_TO_CAMERA_IDX,
     POSITION_TO_FACES,
     ROTATED_FACET_IDX_TO_COORDINATE_IDX,
@@ -29,59 +30,61 @@ class Perception:
         self,
         arduino: Arduino,
         debug: bool = False,
-        debug_path: str = "debug",
-        camera_delay_seconds: float = 0.5,
-        color_neighborhood: int = 2,
     ):
         self.arduino = arduino
         self.debug = debug
-        self.debug_path = Path(debug_path)
-        self.camera_delay_seconds = camera_delay_seconds
-        self.color_neighborhood = color_neighborhood
 
-        if self.debug and not self.debug_path.exists():
-            self.debug_path.mkdir(parents=True, exist_ok=True)
+        if self.debug and not DEBUG_PATH.exists():
+            DEBUG_PATH.mkdir(parents=True, exist_ok=True)
 
         self.calibration = load_calibration()
-
-        self.position_to_camera_capture: dict[Position, cv2.VideoCapure] = {}
-        for pos, idx in POSITION_TO_CAMERA_IDX.items():
-            cap = cv2.VideoCapture(idx)
-            if not cap.isOpened():
-                raise OSError(f"Unable to open webcam {pos} @ {idx}")
-            self.position_to_camera_capture[pos] = cap
 
     @timer
     def capture_image(self, position: Position):
         self.arduino.turn_light_on(position)
         try:
-            rgb = get_rgb(
-                self.position_to_camera_capture[position],
-                delay_seconds=self.camera_delay_seconds,
-            )
+            rgb = get_rgb(POSITION_TO_CAMERA_IDX[position])
         except Exception as e:
             raise e
         finally:
             self.arduino.turn_light_off(position)
         return Image(rgb=rgb, hsv=rgb_to_hsv(rgb))
 
-    def get_face_colors(self, face: Face, image: Image):
+    def get_face_colors(self, position: Position, face: Face, image: Image):
         coordinates = self.calibration.facet_coordinates[face]
-        colors: Iterable[Color] = []
-        for coordinate in coordinates:
-            pixel_hsv = image.hsv[
-                coordinate.y - self.color_neighborhood : coordinate.y
-                + self.color_neighborhood,
-                coordinate.x - self.color_neighborhood : coordinate.x
-                + self.color_neighborhood,
-            ].mean(axis=(0, 1))
-            color = self.pixel_hsv_to_color(pixel_hsv)
-            colors.append(color)
-            logging.debug(f"{face=}, {coordinate=}, {pixel_hsv=}, {color=}")
+
+        colors = self.get_image_colors(image, coordinates)
 
         if self.debug:
             self.log_face_colors(face, coordinates, colors, image)
 
+        self.arduino.run_move(f"{face.value}2")
+        image_rotated = self.capture_image(position)
+        self.arduino.run_move(f"{face.value}2'")
+
+        colors_rotated = self.get_image_colors(image_rotated, coordinates)
+
+        if self.debug:
+            self.log_face_colors(
+                face, coordinates, colors_rotated, image_rotated, suffix="_rotated"
+            )
+
+        for facet_idx, coordinate_idx in ROTATED_FACET_IDX_TO_COORDINATE_IDX[
+            face
+        ].items():
+            colors[facet_idx] = colors_rotated[coordinate_idx]
+
+        return colors
+
+    def get_image_colors(self, image: Image, coordinates: Iterable[Coordinate]):
+        colors: Iterable[Color] = []
+        for coordinate in coordinates:
+            pixel_hsv = image.hsv[
+                coordinate.y - COLOR_NEIGHBORHOOD : coordinate.y + COLOR_NEIGHBORHOOD,
+                coordinate.x - COLOR_NEIGHBORHOOD : coordinate.x + COLOR_NEIGHBORHOOD,
+            ].mean(axis=(0, 1))
+            color = self.pixel_hsv_to_color(pixel_hsv)
+            colors.append(color)
         return colors
 
     def pixel_hsv_to_color(self, pixel_hsv: np.ndarray):
@@ -89,22 +92,22 @@ class Perception:
             if np.all((range.min <= pixel_hsv) & (pixel_hsv <= range.max)):
                 return color
 
-        logging.debug(
-            f"Unable to find exact color match: {pixel_hsv=}, falling back to nearest",
-        )
-
         closest_color = None
         closest_distance = np.inf
         for color, range in self.calibration.hsv_ranges.items():
             distance = np.min(
                 [
-                    np.sum((pixel_hsv - range.min) ** 2),
-                    np.sum((pixel_hsv - range.max) ** 2),
+                    np.mean((pixel_hsv - range.min) ** 2),
+                    np.mean((pixel_hsv - range.max) ** 2),
                 ],
             )
             if distance < closest_distance:
                 closest_color = color
                 closest_distance = distance
+
+        logging.warning(
+            f"Unable to find exact color match: {pixel_hsv=}, {closest_color=}, {closest_distance=}",
+        )
         return closest_color
 
     def log_face_colors(
@@ -113,16 +116,17 @@ class Perception:
         coordinates: Iterable[Coordinate],
         colors: Iterable[Color],
         img: Image,
+        suffix: str = "",
     ):
         annotated = img.rgb.copy()
         for coordinate, color in zip(coordinates, colors, strict=False):
             start = (
-                coordinate.x - self.color_neighborhood,
-                coordinate.y - self.color_neighborhood,
+                coordinate.x - COLOR_NEIGHBORHOOD,
+                coordinate.y - COLOR_NEIGHBORHOOD,
             )
             end = (
-                coordinate.x + self.color_neighborhood,
-                coordinate.y + self.color_neighborhood,
+                coordinate.x + COLOR_NEIGHBORHOOD,
+                coordinate.y + COLOR_NEIGHBORHOOD,
             )
             draw_color = (0, 0, 0)
             annotated = cv2.rectangle(annotated, start, end, draw_color, -1)
@@ -136,26 +140,15 @@ class Perception:
                 5,
             )
 
-        cv2.imwrite(self.debug_path / f"debug_face_{face.value}.jpg", annotated)
+        cv2.imwrite(DEBUG_PATH / f"debug_face_{face.value}{suffix}.jpg", annotated)
 
     def get_cube_colors(self):
         cube_colors: dict[Face, Iterable[Color]] = {}
         for position in [Position.LOWER, Position.UPPER]:
             image = self.capture_image(position)
             for face in POSITION_TO_FACES[position]:
-                colors = self.get_face_colors(face, image)
-
-                self.arduino.run_move(f"{face.value}2")
-                image_rotated = self.capture_image(position)
-                self.arduino.run_move(f"{face.value}2'")
-
-                colors_rotated = self.get_face_colors(face, image_rotated)
-                for facet_idx, coordinate_idx in ROTATED_FACET_IDX_TO_COORDINATE_IDX[
-                    face
-                ].items():
-                    colors[facet_idx] = colors_rotated[coordinate_idx]
-
-                cube_colors[face] = colors
+                cube_colors[face] = self.get_face_colors(position, face, image)
+                logging.debug(f"{face=}, {cube_colors[face]=}")
 
         return cube_colors
 
@@ -177,7 +170,3 @@ class Perception:
                     cube_state.append(face)
 
         return "".join([state.value for state in cube_state])
-
-    def __del__(self):
-        for cap in self.position_to_camera_capture.values():
-            cap.release()

@@ -4,8 +4,11 @@ from pathlib import Path
 from rubiks_cube_solver.types import Color, Face, Position
 
 ROOT_PATH = Path(__file__).parent.parent.parent
+DEBUG_PATH = ROOT_PATH / "debug"
 COLORS_PATH = ROOT_PATH / "data" / "colors.json"
 FACES_PATH = ROOT_PATH / "data" / "faces.json"
+
+COLOR_NEIGHBORHOOD = 5
 
 POSITION_TO_CAMERA_IDX: dict[Position, int] = {
     Position.LOWER: 2,

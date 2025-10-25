@@ -1,5 +1,4 @@
 import logging
-import time
 
 import cv2
 import numpy as np
@@ -22,10 +21,15 @@ def keep_windows_open(destroy=True):
         cv2.destroyAllWindows()
 
 
-def get_rgb(cap: cv2.VideoCapture, delay_seconds: float = 0):
-    time.sleep(delay_seconds)
+def get_rgb(idx: int):
+    cap = cv2.VideoCapture(idx)
+
+    if not cap.isOpened():
+        raise OSError(f"Unable to open webcam: {idx}")
 
     ret, frame = cap.read()
+
+    cap.release()
 
     if not ret:
         raise OSError("Unable to read frame")

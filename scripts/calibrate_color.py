@@ -6,7 +6,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from rubiks_cube_solver.constants import COLORS_PATH
+from rubiks_cube_solver.constants import COLOR_NEIGHBORHOOD, COLORS_PATH
 from rubiks_cube_solver.cv import keep_windows_open, mask_by_hsv, show_image
 from rubiks_cube_solver.types import (
     Color,
@@ -58,7 +58,10 @@ def calibrate_color(color: Color, images: dict[Position, Image]):
     def mouse_callback(img: Image):
         def get_pixel_value(event, x, y, flags, param):
             if event == cv2.EVENT_LBUTTONDOWN:
-                hsv_color = img.hsv[y, x]
+                hsv_color = img.hsv[
+                    y - COLOR_NEIGHBORHOOD : y + COLOR_NEIGHBORHOOD,
+                    x - COLOR_NEIGHBORHOOD : x + COLOR_NEIGHBORHOOD,
+                ].mean(axis=(0, 1))
                 logging.debug(f"HSV at ({x}, {y}): {hsv_color}")
                 pixels_hsv.append(hsv_color)
 
