@@ -2,6 +2,7 @@ import argparse
 import logging
 
 from rubiks_cube_solver.arduino import Arduino
+from rubiks_cube_solver.move import get_random_moves, get_random_resolving_moves
 from rubiks_cube_solver.perception import Perception
 from rubiks_cube_solver.solver import solve
 
@@ -71,19 +72,30 @@ def main():
     perception = Perception(arduino, debug=args.debug)
 
     if args.shuffle:
-        return arduino.run_random_moves(num_moves=args.num_moves, random_seed=args.seed)
+        moves = get_random_moves(num_moves=args.num_moves, random_seed=args.random_seed)
+        return arduino.run_moves(moves)
 
     if args.shuffle_and_resolve:
-        return arduino.run_random_resolving_moves(
-            num_moves=args.num_moves,
-            random_seed=args.seed,
+        moves = get_random_resolving_moves(
+            num_moves=args.num_moves, random_seed=args.random_seed
         )
+        return arduino.run_moves(moves)
 
     if args.listen_for_input:
-        return arduino.listen_for_input_moves()
+        while True:
+            command = input("Enter a move or press 'q' to exit: ").strip()
+            if command.lower() == "q":
+                exit()
+            arduino.run_move(command)
 
     cube_state = perception.get_cube_state()
     logging.debug("Got cube state: {}")
+
+    response = input("Solve? (y/n): ")
+    if response.strip.lower() != "y":
+        logging.info("Quitting")
+        return
+
     moves = solve(cube_state)
     return arduino.run_moves(moves)
 

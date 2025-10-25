@@ -5,10 +5,6 @@ from collections.abc import Iterable
 import serial
 
 from rubiks_cube_solver.constants import ARDUINO_BAUDRATE
-from rubiks_cube_solver.move import (
-    get_random_moves,
-    get_random_resolving_moves,
-)
 from rubiks_cube_solver.types import Position, Status
 from rubiks_cube_solver.utils import timer
 
@@ -59,21 +55,6 @@ class Arduino:
     def run_moves(self, moves: Iterable[str]):
         for move in moves:
             self.run_move(move)
-
-    def listen_for_input_moves(self):
-        while True:
-            command = input("Enter a move or press 'q' to exit: ").strip()
-            if command.lower() == "q":
-                exit()
-            self.run_move(command)
-
-    def run_random_moves(self, num_moves: int, random_seed: int = None):
-        moves = get_random_moves(num_moves=num_moves, random_seed=random_seed)
-        self.run_moves(moves)
-
-    def run_random_resolving_moves(self, num_moves: int, random_seed: int = None):
-        moves = get_random_resolving_moves(num_moves=num_moves, random_seed=random_seed)
-        self.run_moves(moves)
 
     def turn_light_on(self, position: Position):
         self.send_light_command(position, Status.ON)
