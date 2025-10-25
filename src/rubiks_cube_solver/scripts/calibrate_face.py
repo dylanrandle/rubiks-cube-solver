@@ -81,7 +81,7 @@ def calibrate_coordinate(face, images: dict[Position, Image]):
 
     def get_coordinate(event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
-            logging.debug(f"Coordinate: ({x}, {y})")
+            logging.info(f"Coordinate: ({x}, {y})")
             coordinates.append(Coordinate(x=x, y=y))
 
     pos = FACE_TO_POSITION[face]

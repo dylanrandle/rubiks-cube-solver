@@ -2,14 +2,18 @@ import logging
 from typing import Iterable
 
 import cv2
+import joblib
 import numpy as np
+from sklearn.base import ClassifierMixin
 
 from rubiks_cube_solver.arduino import Arduino
 from rubiks_cube_solver.calibration import load_calibration
 from rubiks_cube_solver.constants import (
+    CLASS_TO_COLOR,
     COLOR_NEIGHBORHOOD,
     COLOR_TO_FACE,
     DEBUG_PATH,
+    MODEL_PATH,
     POSITION_TO_CAMERA_IDX,
     POSITION_TO_FACES,
     ROTATED_FACET_IDX_TO_COORDINATE_IDX,
@@ -38,6 +42,7 @@ class Perception:
             DEBUG_PATH.mkdir(parents=True, exist_ok=True)
 
         self.calibration = load_calibration()
+        self.color_detector: ClassifierMixin = joblib.load(MODEL_PATH)
 
     @timer
     def capture_image(self, position: Position):
@@ -88,27 +93,30 @@ class Perception:
         return colors
 
     def pixel_hsv_to_color(self, pixel_hsv: np.ndarray):
-        for color, range in self.calibration.hsv_ranges.items():
-            if np.all((range.min <= pixel_hsv) & (pixel_hsv <= range.max)):
-                return color
+        color_class = self.color_detector.predict(pixel_hsv.reshape(1, -1))
+        print(color_class)
+        return CLASS_TO_COLOR[color_class[0]]
+        # for color, range in self.calibration.hsv_ranges.items():
+        #     if np.all((range.min <= pixel_hsv) & (pixel_hsv <= range.max)):
+        #         return color
 
-        closest_color = None
-        closest_distance = np.inf
-        for color, range in self.calibration.hsv_ranges.items():
-            distance = np.min(
-                [
-                    np.mean((pixel_hsv - range.min) ** 2),
-                    np.mean((pixel_hsv - range.max) ** 2),
-                ],
-            )
-            if distance < closest_distance:
-                closest_color = color
-                closest_distance = distance
+        # closest_color = None
+        # closest_distance = np.inf
+        # for color, range in self.calibration.hsv_ranges.items():
+        #     distance = np.min(
+        #         [
+        #             np.mean((pixel_hsv - range.min) ** 2),
+        #             np.mean((pixel_hsv - range.max) ** 2),
+        #         ],
+        #     )
+        #     if distance < closest_distance:
+        #         closest_color = color
+        #         closest_distance = distance
 
-        logging.warning(
-            f"Unable to find exact color match: {pixel_hsv=}, {closest_color=}, {closest_distance=}",
-        )
-        return closest_color
+        # logging.warning(
+        #     f"Unable to find exact color match: {pixel_hsv=}, {closest_color=}, {closest_distance=}",
+        # )
+        # return closest_color
 
     def log_face_colors(
         self,

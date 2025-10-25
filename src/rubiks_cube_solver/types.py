@@ -53,5 +53,4 @@ class Image:
 
 @dataclass
 class Calibration:
-    hsv_ranges: dict[Color, Range]
     facet_coordinates: dict[Face, Iterable[Coordinate]]

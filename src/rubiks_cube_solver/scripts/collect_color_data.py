@@ -48,12 +48,12 @@ def main():
 
     color = Color(args.color)
 
-    calibrate_color(color, images)
+    collect_color_data(color, images)
 
 
-def calibrate_color(color: Color, images: dict[Position, Image]):
+def collect_color_data(color: Color, images: dict[Position, Image]):
     pixels_hsv = []
-    logging.info(f"Calibrating {color}")
+    logging.info(f"Collecting data for {color=}")
 
     def mouse_callback(img: Image):
         def get_pixel_value(event, x, y, flags, param):
@@ -91,20 +91,21 @@ def calibrate_color(color: Color, images: dict[Position, Image]):
 
     keep_windows_open(destroy=True)
 
-    maybe_commit(lambda: save_color(color, hsv_min, hsv_max))
+    maybe_commit(lambda: save_colors(color, pixels_hsv))
 
 
-def save_color(color: Color, hsv_min: np.ndarray, hsv_max: np.ndarray):
+def save_colors(color: Color, pixels_hsv: list[np.ndarray]):
     if COLORS_PATH.exists():
         with open(COLORS_PATH) as f:
             data = json.load(f)
     else:
         data = {}
 
-    data[color.value] = {
-        "min": hsv_min.tolist(),
-        "max": hsv_max.tolist(),
-    }
+    curr_list: list = data.get(color.value, [])
+    assert isinstance(curr_list, list), "Expected to receive list type for color data"
+    curr_list += [arr.tolist() for arr in pixels_hsv]
+
+    data[color.value] = curr_list
 
     with open(COLORS_PATH, "w") as f:
         json.dump(data, f)

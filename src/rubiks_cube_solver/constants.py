@@ -7,6 +7,7 @@ ROOT_PATH = Path(__file__).parent.parent.parent
 DEBUG_PATH = ROOT_PATH / "debug"
 COLORS_PATH = ROOT_PATH / "data" / "colors.json"
 FACES_PATH = ROOT_PATH / "data" / "faces.json"
+MODEL_PATH = ROOT_PATH / "data" / "model.joblib"
 
 ARDUINO_BAUDRATE = 9600
 COLOR_NEIGHBORHOOD = 5
@@ -34,6 +35,17 @@ COLOR_TO_FACE: dict[Color, Face] = {
     Color.RED: Face.LEFT,
     Color.YELLOW: Face.BACK,
 }
+
+COLOR_TO_CLASS: dict[Color, int] = {
+    Color.GREEN: 0,
+    Color.ORANGE: 1,
+    Color.WHITE: 2,
+    Color.BLUE: 3,
+    Color.RED: 4,
+    Color.YELLOW: 5,
+}
+
+CLASS_TO_COLOR: dict[int, Color] = {v: k for k, v in COLOR_TO_CLASS.items()}
 
 # Contains coordinate indices for facets
 # that we perceive after 180 degree rotation
