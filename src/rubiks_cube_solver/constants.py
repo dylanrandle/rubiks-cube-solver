@@ -8,6 +8,7 @@ DEBUG_PATH = ROOT_PATH / "debug"
 COLORS_PATH = ROOT_PATH / "data" / "colors.json"
 FACES_PATH = ROOT_PATH / "data" / "faces.json"
 
+ARDUINO_BAUDRATE = 9600
 COLOR_NEIGHBORHOOD = 5
 
 POSITION_TO_CAMERA_IDX: dict[Position, int] = {

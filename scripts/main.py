@@ -37,7 +37,6 @@ def parse_args():
         help="Whether to wait for input moves",
     )
     parser.add_argument(
-        "-n",
         "--num-moves",
         required=False,
         type=int,
@@ -52,15 +51,6 @@ def parse_args():
         help="Random seed",
     )
     parser.add_argument(
-        "-b",
-        "--baudrate",
-        required=False,
-        type=int,
-        default=9600,
-        help="Baudrate for serial communication",
-    )
-    parser.add_argument(
-        "-d",
         "--debug",
         required=False,
         action="store_true",
@@ -75,7 +65,7 @@ def parse_args():
 def main():
     args = parse_args()
 
-    arduino = Arduino(args.port, baudrate=args.baudrate)
+    arduino = Arduino(args.port)
     arduino.wait_for_ready()
 
     perception = Perception(arduino, debug=args.debug)
