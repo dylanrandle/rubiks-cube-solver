@@ -11,7 +11,6 @@ from rubiks_cube_solver.solver import solve
 
 @dataclass
 class Args:
-    port: str
     debug: bool
     shuffle: bool
     shuffle_and_resolve: bool
@@ -22,13 +21,6 @@ class Args:
 
 def parse_args():
     parser = argparse.ArgumentParser("Rubik's cube solver")
-    parser.add_argument(
-        "-p",
-        "--port",
-        required=True,
-        type=str,
-        help="Serial port for Arduino",
-    )
     parser.add_argument(
         "--debug",
         required=False,
@@ -80,7 +72,7 @@ def parse_args():
 def main():
     args = parse_args()
 
-    arduino = Arduino(args.port)
+    arduino = Arduino()
     arduino.wait_for_ready()
 
     perception = Perception(arduino, debug=args.debug)

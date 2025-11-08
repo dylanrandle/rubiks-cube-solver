@@ -4,14 +4,14 @@ from collections.abc import Iterable
 
 import serial
 
-from rubiks_cube_solver.constants import ARDUINO_BAUDRATE
+from rubiks_cube_solver.constants import ARDUINO_BAUDRATE, ARDUINO_PATH
 from rubiks_cube_solver.types import Position, Status
 from rubiks_cube_solver.utils import timer
 
 
 class Arduino:
-    def __init__(self, port):
-        self.serial = serial.Serial(port=port, baudrate=ARDUINO_BAUDRATE)
+    def __init__(self):
+        self.serial = serial.Serial(port=ARDUINO_PATH, baudrate=ARDUINO_BAUDRATE)
         self.move_prefix = "MOVE:"
         self.light_prefix = "LIGHT:"
 

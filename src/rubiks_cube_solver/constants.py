@@ -9,6 +9,9 @@ COLORS_PATH = ROOT_PATH / "data" / "colors.json"
 FACES_PATH = ROOT_PATH / "data" / "faces.json"
 MODEL_PATH = ROOT_PATH / "data" / "model.joblib"
 
+ARDUINO_PATH = (
+    "/dev/serial/by-id/usb-Arduino__www.arduino.cc__0043_34331323036351400181-if00"
+)
 ARDUINO_BAUDRATE = 9600
 COLOR_NEIGHBORHOOD = 5
 
