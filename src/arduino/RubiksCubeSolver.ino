@@ -24,7 +24,7 @@ const int LIGHT_PIN_LOWER = A0;
 const int LIGHT_PIN_UPPER = A1;
 const int LIGHT_INDEX_LOWER = 0;
 const int LIGHT_INDEX_UPPER = 1;
-const int LIGHT_BRIGHTNESS = 20;
+const int LIGHT_BRIGHTNESS = 5;
 Adafruit_NeoPixel lights[] = {
   Adafruit_NeoPixel(NUM_LEDS_PER_LIGHT, LIGHT_PIN_LOWER, NEO_GRBW + NEO_KHZ800),
   Adafruit_NeoPixel(NUM_LEDS_PER_LIGHT, LIGHT_PIN_UPPER, NEO_GRBW + NEO_KHZ800),
