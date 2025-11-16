@@ -1,7 +1,9 @@
 #include <AccelStepper.h>
 #include <Adafruit_NeoPixel.h>
 
-const int MOTOR_STEPS_PER_REVOLUTION = 400;
+const int MOTOR_DEFAULT_STEPS_PER_REVOLUTION = 200;
+const int MOTOR_MICRO_STEP_FACTOR = 2;  // half-step microstepping
+const int MOTOR_STEPS_PER_REVOLUTION = MOTOR_DEFAULT_STEPS_PER_REVOLUTION * MOTOR_MICRO_STEP_FACTOR;
 const int MOTOR_STEPS_PER_TURN = MOTOR_STEPS_PER_REVOLUTION / 4;  // one turn is a quarter revolution
 const int MOTOR_VELOCITY_CONSTANT = 100;
 const int MOTOR_ACCELERATION_CONSTANT = 100;
@@ -148,9 +150,9 @@ void handleJogCommand(String command) {
   long deltaPosition;
 
   if (inverted) {
-    deltaPosition = -1;
+    deltaPosition = -MOTOR_MICRO_STEP_FACTOR;
   } else {
-    deltaPosition = 1;
+    deltaPosition = MOTOR_MICRO_STEP_FACTOR;
   }
 
   stepper.runToNewPosition(currentPosition + deltaPosition);
