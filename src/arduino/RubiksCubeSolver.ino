@@ -1,4 +1,5 @@
 #include <AccelStepper.h>
+#include <Adafruit_NeoPixel.h>
 
 const int MOTOR_STEPS_PER_REVOLUTION = 400;
 const int MOTOR_STEPS_PER_TURN = MOTOR_STEPS_PER_REVOLUTION / 4;  // one turn is a quarter revolution
@@ -17,6 +18,18 @@ AccelStepper steppers[NUM_STEPPERS] = {
   AccelStepper(AccelStepper::DRIVER, 10, 13),
 };
 
+const int NUM_LIGHTS = 2;
+const int NUM_LEDS_PER_LIGHT = 12;
+const int LIGHT_PIN_LOWER = A0;
+const int LIGHT_PIN_UPPER = A1;
+const int LIGHT_INDEX_LOWER = 0;
+const int LIGHT_INDEX_UPPER = 1;
+const int LIGHT_BRIGHTNESS = 20;
+Adafruit_NeoPixel lights[] = {
+  Adafruit_NeoPixel(NUM_LEDS_PER_LIGHT, LIGHT_PIN_LOWER, NEO_GRBW + NEO_KHZ800),
+  Adafruit_NeoPixel(NUM_LEDS_PER_LIGHT, LIGHT_PIN_UPPER, NEO_GRBW + NEO_KHZ800),
+};
+
 struct Move {
   char face;
   int numTurns;
@@ -26,12 +39,14 @@ struct Move {
 void setup() {
   Serial.begin(9600);
 
-  pinMode(A0, OUTPUT);
-  pinMode(A1, OUTPUT);
-
   for (int i = 0; i < NUM_STEPPERS; i++) {
     steppers[i].setMaxSpeed(MOTOR_MAX_SPEED);
     steppers[i].setAcceleration(MOTOR_ACCELERATION);
+  }
+
+  for (int i = 0; i < NUM_LIGHTS; i++) {
+    lights[i].begin();
+    lights[i].setBrightness(LIGHT_BRIGHTNESS);
   }
 
   Serial.println("STATUS:READY");
@@ -100,22 +115,32 @@ void handleMoveCommand(String command) {
   runMove(move);
 }
 
+void turnLightOn(int lightIndex) {
+  lights[lightIndex].fill(lights[lightIndex].Color(255, 255, 255, 255));
+  lights[lightIndex].show();
+}
+
+void turnLightOff(int lightIndex) {
+  lights[lightIndex].clear();
+  lights[lightIndex].show();
+}
+
 void handleLightCommand(String command) {
-  if (command.endsWith("U0")) { // upper off
-    digitalWrite(A0, LOW);
-  } else if (command.endsWith("U1")) { // upper on
-    digitalWrite(A0, HIGH);
-  } else if (command.endsWith("L0")) { // lower off
-    digitalWrite(A1, LOW);
-  } else if (command.endsWith("L1")) { // lower on
-    digitalWrite(A1, HIGH);
+  if (command.endsWith("U0")) {  // upper off
+    turnLightOff(LIGHT_INDEX_UPPER);
+  } else if (command.endsWith("U1")) {  // upper on
+    turnLightOn(LIGHT_INDEX_UPPER);
+  } else if (command.endsWith("L0")) {  // lower off
+    turnLightOff(LIGHT_INDEX_LOWER);
+  } else if (command.endsWith("L1")) {  // lower on
+    turnLightOn(LIGHT_INDEX_LOWER);
   }
 }
 
 void handleJogCommand(String command) {
   char face = command.charAt(0);
   bool inverted = command.endsWith("'");
-  
+
   int stepperIdx = getStepperIndex(face);
   AccelStepper stepper = steppers[stepperIdx];
 
