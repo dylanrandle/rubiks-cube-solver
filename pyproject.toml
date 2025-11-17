@@ -13,7 +13,10 @@ dependencies = [
 ]
 
 [project.scripts]
-main = "rubiks_cube_solver.scripts.main:main"
+solve = "rubiks_cube_solver.scripts.solve:main"
+shuffle = "rubiks_cube_solver.scripts.shuffle:main"
+move = "rubiks_cube_solver.scripts.move:main"
+jog = "rubiks_cube_solver.scripts.jog:main"
 
 [build-system]
 requires = ["hatchling"]

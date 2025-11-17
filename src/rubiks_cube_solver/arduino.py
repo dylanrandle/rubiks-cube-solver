@@ -14,6 +14,7 @@ class Arduino:
         self.serial = serial.Serial(port=ARDUINO_PATH, baudrate=ARDUINO_BAUDRATE)
         self.move_prefix = "MOVE:"
         self.light_prefix = "LIGHT:"
+        self.jog_prefix = "JOG:"
 
     @timer
     def write_line_and_wait_for_response(self, message: str):
@@ -65,3 +66,6 @@ class Arduino:
     def send_light_command(self, position: Position, status: Status):
         command = self.light_prefix + position.value + status.value
         return self.write_line_and_wait_for_response(command)
+
+    def run_jog(self, jog: str):
+        return self.write_line_and_wait_for_response(self.jog_prefix + jog)
